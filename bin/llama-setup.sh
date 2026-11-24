@@ -19,12 +19,30 @@ CUDART_TARBALL="$VENDOR_DIR/llama.cpp-cudart.tar.gz"
 BIN_DIR="$VENDOR_DIR/llama.cpp/bin"
 SERVER="$BIN_DIR/llama-server"
 
-mode="${1:-}"
-case "$mode" in
-  --check|--download) ;;
-  "") mode="--check" ;;
-  *) echo "usage: llama-setup.sh [--check|--download]" >&2; exit 2 ;;
-esac
+mode="--check"
+vram_override=""
+tier_override=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --check|--download) mode="$1"; shift ;;
+    --vram) vram_override="$2"; shift 2 ;;
+    --tier) tier_override="$2"; shift 2 ;;
+    -h|--help)
+      cat <<'HELP'
+usage: llama-setup.sh [--check|--download] [--vram N] [--tier T]
+
+  --check   report status, exit 0 healthy / 2 not installed or size mismatch
+  --download  force re-download; print "already installed" if tarballs are good
+  --vram N  override detected VRAM (integer GB)
+  --tier T  override detected tier (6|8|12|16)
+HELP
+      exit 0 ;;
+    *) echo "usage: llama-setup.sh [--check|--download] [--vram N] [--tier T]" >&2; exit 2 ;;
+  esac
+done
+
+# flag wins over the environment override
+[ -n "$vram_override" ] && export LLAMA_VRAM_MIB=$((vram_override * 1024))
 
 check_tarball_size() { # tarball expected-size-bytes
   local tarball="$1" expected="$2" actual
@@ -46,9 +64,14 @@ report() {
   if gpu_line=$(detect_gpu_memory_mib 2>/dev/null); then
     tier_gb=$(vram_gb_from_mib "$gpu_line")
     tier_snap=$(snap_tier "$tier_gb")
+    [ -n "$tier_override" ] && tier_snap="$tier_override"
     echo "GPU found (${tier_gb} GB, tier ${tier_snap})"
   else
-    echo "no GPU"
+    if [ -n "$tier_override" ]; then
+      echo "no GPU (tier override: ${tier_override})"
+    else
+      echo "no GPU"
+    fi
   fi
 
   # --- binary ---

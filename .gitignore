@@ -1,0 +1,9 @@
+# vendor/ — downloaded binaries + models (gitignored, rebuilt from manifests)
+/vendor/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

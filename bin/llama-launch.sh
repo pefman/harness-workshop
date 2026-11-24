@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # bin/llama-launch.sh — start llama-server with the tier-appropriate parameters.
 # Usage:
-#   llama-launch.sh [--model id] [--tier T] [--host H] [--port P] [--ctx N] [--dry-run]
+#   llama-launch.sh [--model id] [--tier T] [--vram N] [--host H] [--port P] [--ctx N] [--dry-run]
 #
 #   --model      model id from config/models.sh (default: tier's ★ default)
 #   --tier       tier 6|8|12|16 (default: auto-detected from GPU)
 #   --host       listen host (default: 127.0.0.1)
 #   --port       listen port (default: 8080)
 #   --ctx        context size (default: by tier — 6/8→4096, 12→8192, 16→16384)
+#   --vram N     override detected VRAM (integer GB)
 #   --dry-run    print the download line + exact resolved command, exit 0
 #                without downloading or launching
 #
@@ -29,6 +30,7 @@ MODELS_DIR="$VENDOR_DIR/models"
 # --- args ---
 model_override=""
 tier_override=""
+vram_override=""
 host="127.0.0.1"
 port="8080"
 ctx_override=""
@@ -37,18 +39,31 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --model) model_override="$2"; shift 2 ;;
     --tier) tier_override="$2"; shift 2 ;;
+    --vram) vram_override="$2"; shift 2 ;;
     --host) host="$2"; shift 2 ;;
     --port) port="$2"; shift 2 ;;
     --ctx) ctx_override="$2"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
     -h|--help)
       cat <<'HELP'
-usage: llama-launch.sh [--model id] [--tier T] [--host H] [--port P] [--ctx N] [--dry-run]
+usage: llama-launch.sh [--model id] [--tier T] [--vram N] [--host H] [--port P] [--ctx N] [--dry-run]
+
+  --model      model id from config/models.sh (default: tier's default)
+  --tier       tier 6|8|12|16 (default: auto-detected from GPU)
+  --vram N     override detected VRAM (integer GB)
+  --host       listen host (default: 127.0.0.1)
+  --port       listen port (default: 8080)
+  --ctx        context size (default: by tier — 6/8→4096, 12→8192, 16→16384)
+  --dry-run    print the download line + exact resolved command, exit 0
+               without downloading or launching
 HELP
       exit 0 ;;
     *) echo "error: unknown flag '$1'" >&2; exit 2 ;;
   esac
 done
+
+# flag wins over the environment override
+[ -n "$vram_override" ] && export LLAMA_VRAM_MIB=$((vram_override * 1024))
 
 # --- resolve tier + model ---
 tier=$(active_tier "$tier_override")

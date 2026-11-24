@@ -29,20 +29,23 @@ else
 fi
 positional=""
 tier_override=""
+vram_override=""
 json_mode=0
 force_download=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --tier) tier_override="$2"; shift 2 ;;
+    --vram) vram_override="$2"; shift 2 ;;
     --json) json_mode=1; shift ;;
     --force) force_download=1; shift ;;
     -h|--help)
       cat <<'HELP'
-usage: llama-models.sh list [--tier T] [--json]
-       llama-models.sh download <id>|all [--tier T] [--force]
+usage: llama-models.sh list [--tier T] [--vram N] [--json]
+       llama-models.sh download <id>|all [--tier T] [--vram N] [--force]
 
 list     print the models in the active tier (auto-detected by GPU)
 download download one model id (or "all" = active tier) into vendor/models/
+--vram N  override detected VRAM (integer GB)
 --force  re-download even if the file already exists with a good size
 HELP
       exit 0 ;;
@@ -52,6 +55,9 @@ HELP
       else echo "error: unexpected argument '$1'" >&2; exit 2; fi ;;
   esac
 done
+
+# flag wins over the environment override
+[ -n "$vram_override" ] && export LLAMA_VRAM_MIB=$((vram_override * 1024))
 
 active_tier() {
   if [ -n "$tier_override" ]; then echo "$tier_override"; return 0; fi
@@ -188,11 +194,12 @@ case "$cmd" in
     fi ;;
   -h|--help|help)
     cat <<'HELP'
-usage: llama-models.sh list [--tier T] [--json]
-       llama-models.sh download <id>|all [--tier T] [--force]
+usage: llama-models.sh list [--tier T] [--vram N] [--json]
+       llama-models.sh download <id>|all [--tier T] [--vram N] [--force]
 
 list     print the models in the active tier (auto-detected by GPU)
 download download one model id (or "all" = active tier) into vendor/models/
+--vram N  override detected VRAM (integer GB)
 --force  re-download even if the file already exists with a good size
 HELP
     exit 0 ;;
