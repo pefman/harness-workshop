@@ -89,6 +89,16 @@ active_tier() {
   return 0
 }
 
+# default_ctx_for_tier(tier) → prints the per-tier default context size
+# (6/8→16384, 12→16384, 16→32768); returns 1 and prints nothing for an unknown tier.
+default_ctx_for_tier() {
+  case "${1:-}" in
+    6|8|12) echo 16384 ;;
+    16) echo 32768 ;;
+    *) return 1 ;;
+  esac
+}
+
 # ensure_vendor_llama(bin_dir) → prints resolved llama-server path, else
 # prints a clear error to stderr and returns 1.
 ensure_vendor_llama() {

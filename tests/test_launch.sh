@@ -22,24 +22,24 @@ assert_eq "$rc" "0" "dry_run_exits_zero"
 assert_contains "$out" "llama-server" "dry_run_prints_llama_server"
 assert_contains "$out" "--model" "dry_run_prints_model_flag"
 assert_contains "$out" "--n-gpu-layers auto" "dry_run_prints_n_gpu_layers"
-assert_contains "$out" "--ctx-size 4096" "dry_run_prints_ctx_4096_tier_6_default"
+assert_contains "$out" "--ctx-size 16384" "dry_run_prints_ctx_16384_tier_6_default"
 assert_contains "$out" "--host 127.0.0.1 --port 8080" "dry_run_prints_host_port"
 rm -rf "$tmp"
 
-# --- dry-run: tier 16 → ctx 16384 ---
+# --- dry-run: tier 16 → ctx 32768 ---
 tmp=$(vended_tmp)
 out=$(LLAMA_VENDOR="$tmp" ./bin/llama-launch.sh --dry-run --tier 16 --model qwen2.5-14b-q6-k 2>&1)
 rc=$?
 assert_eq "$rc" "0" "dry_run_tier_16_exits_zero"
-assert_contains "$out" "--ctx-size 16384" "dry_run_tier_16_ctx_16384"
+assert_contains "$out" "--ctx-size 32768" "dry_run_tier_16_ctx_32768"
 rm -rf "$tmp"
 
-# --- dry-run: tier 12 → ctx 8192 (default model) ---
+# --- dry-run: tier 12 → ctx 16384 (default model) ---
 tmp=$(vended_tmp)
 out=$(LLAMA_VENDOR="$tmp" ./bin/llama-launch.sh --dry-run --tier 12 2>&1)
 rc=$?
 assert_eq "$rc" "0" "dry_run_tier_12_exits_zero"
-assert_contains "$out" "--ctx-size 8192" "dry_run_tier_12_ctx_8192"
+assert_contains "$out" "--ctx-size 16384" "dry_run_tier_12_ctx_16384"
 rm -rf "$tmp"
 
 # --- missing vendor: exits non-zero, clear message ---

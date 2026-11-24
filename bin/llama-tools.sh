@@ -18,7 +18,7 @@
 #   --vram N     override detected VRAM (integer GB)
 #   --host H     listen host (default: 127.0.0.1)
 #   --port P     listen port (default: 8080)
-#   --ctx N      context size (default: 6/8→4096, 12→8192, 16→16384)
+#   --ctx N      context size (default: 6/8,12→16384, 16→32768)
 #   --dry-run    print the resolved plan + exact commands, exit 0
 # Extra args after `--` are forwarded to the harness.
 set -euo pipefail
@@ -109,12 +109,7 @@ model_file="$MODELS_DIR/$file"
 # --- ctx (by tier; --ctx overrides) ---
 ctx="$ctx_override"
 if [ -z "$ctx" ]; then
-  case "$tier" in
-    6|8) ctx=4096 ;;
-    12) ctx=8192 ;;
-    16) ctx=16384 ;;
-    *) echo "error: unknown tier '$tier'" >&2; exit 2 ;;
-  esac
+  ctx=$(default_ctx_for_tier "$tier") || { echo "error: unknown tier '$tier'" >&2; exit 2; }
 fi
 
 model_name="$params $quant"

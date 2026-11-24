@@ -25,7 +25,7 @@ mkdir -p "$tmp/llama.cpp/bin"
 rc=0
 out=$(LLAMA_VENDOR="$tmp" ./bin/llama.sh launch --dry-run --tier 16 2>&1) || rc=$?
 assert_eq "$rc" "0" "menu_launch_tier_16_exits_zero"
-assert_contains "$out" "--ctx-size 16384" "menu_launch_tier_16_prints_ctx_16384"
+assert_contains "$out" "--ctx-size 32768" "menu_launch_tier_16_prints_ctx_32768"
 rm -rf "$tmp"
 
 # --- help subcommand prints help text ---

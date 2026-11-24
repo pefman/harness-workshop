@@ -7,7 +7,7 @@
 #   --tier       tier 6|8|12|16 (default: auto-detected from GPU)
 #   --host       listen host (default: 127.0.0.1)
 #   --port       listen port (default: 8080)
-#   --ctx        context size (default: by tier — 6/8→4096, 12→8192, 16→16384)
+#   --ctx        context size (default: by tier — 6/8,12→16384, 16→32768)
 #   --vram N     override detected VRAM (integer GB)
 #   --dry-run    print the download line + exact resolved command, exit 0
 #                without downloading or launching
@@ -65,7 +65,7 @@ usage: llama-launch.sh [--model id] [--tier T] [--vram N] [--host H] [--port P] 
   --vram N     override detected VRAM (integer GB)
   --host       listen host (default: 127.0.0.1)
   --port       listen port (default: 8080)
-  --ctx        context size (default: by tier — 6/8→4096, 12→8192, 16→16384)
+  --ctx        context size (default: by tier — 6/8,12→16384, 16→32768)
   --dry-run    print the download line + exact resolved command, exit 0
                without downloading or launching
 HELP
@@ -101,12 +101,7 @@ model_file="$MODELS_DIR/$file"
 # --- ctx by tier ---
 ctx="$ctx_override"
 if [ -z "$ctx" ]; then
-  case "$tier" in
-    6|8) ctx=4096 ;;
-    12) ctx=8192 ;;
-    16) ctx=16384 ;;
-    *) echo "error: unknown tier '$tier'" >&2; exit 2 ;;
-  esac
+  ctx=$(default_ctx_for_tier "$tier") || { echo "error: unknown tier '$tier'" >&2; exit 2; }
 fi
 
 # --- binary must exist ---

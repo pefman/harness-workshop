@@ -63,7 +63,7 @@ The workshop originally said "test some models"; during the design conversation 
 - **Harness launcher**: separate script `bin/llama-launch.sh`, starts `llama-server` with:
   - `--model vendor/models/<file>.gguf`
   - `--n-gpu-layers auto`
-  - `--ctx` by tier: 6/8 GB → 4096, 12 GB → 8192, 16 GB → 16384
+  - `--ctx` by tier: 6/8 GB → 16384, 12 GB → 16384, 16 GB → 32768
   - `--host 127.0.0.1 --port 8080` (overridable via args)
   - threads left to llama.cpp's own default (no invented number)
   - prints the endpoint + a sample `curl` line on start
@@ -84,7 +84,7 @@ The workshop originally said "test some models"; during the design conversation 
 
 *Defaults are Llama-first (the workshop is about Llama) except tier 16, which showcases a bigger-class Qwen, since the hardware is strongest there.*
 
-*VRAM needed is model size + ~1.5–2 GB for context. A "comfortably fits" line is the right expectation for the default of each tier, and the menu shows the fit so the attendee can pick a tighter option.*
+*VRAM needed is model size + ~0.25 MB per context token (≈4 GB at 16384 ctx, ≈8 GB at 32768 ctx). A "comfortably fits" line is the right expectation for the default of each tier, and the menu shows the fit so the attendee can pick a tighter option.*
 
 ## Structure
 

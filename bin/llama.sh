@@ -40,21 +40,22 @@ HELP
 }
 
 tier_banner() {
-  local tier model size needed verdict
+  local tier model size ctx needed verdict
   tier=$(active_tier "")
   model=$(default_model_for_tier "$tier" 2>/dev/null)
   if [ -z "$model" ]; then
     echo "Tier $tier"
     return
   fi
+  ctx=$(default_ctx_for_tier "$tier" 2>/dev/null) || { echo "Tier $tier"; return; }
   IFS='|' read -r size _ _ _ _ _ <<< "${model_entry[$model]}"
-  needed=$(awk -v s="$size" 'BEGIN { printf "%.1f", s + 2.0 }')
+  needed=$(awk -v s="$size" -v c="$ctx" 'BEGIN { printf "%.1f", s + c * 0.00025 }')
   if awk -v n="$needed" -v t="$tier" 'BEGIN { exit !(n < t) }'; then
     verdict="fits"
   else
     verdict="tight"
   fi
-  echo "Tier $tier — default: $model (${size} GB). ~${needed} GB needed (size + 2 GB context) — $verdict."
+  echo "Tier $tier — default: $model (${size} GB, ctx $ctx). ~${needed} GB needed (size + ~0.25 MB/token ctx) — $verdict."
 }
 
 menu_loop() {

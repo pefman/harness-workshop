@@ -138,7 +138,7 @@ bad size exits non-zero with a "size mismatch" message; `--force` re-downloads.
 bin/llama-launch.sh                          # active tier + default model
 bin/llama-launch.sh --model llama-3.2-3b-q4-k-m
 bin/llama-launch.sh --tier 16 --model qwen2.5-14b-q6-k
-bin/llama-launch.sh --dry-run --ctx 4096
+bin/llama-launch.sh --dry-run --ctx 32768
 bin/llama-launch.sh --host 0.0.0.0 --port 8080
 ```
 
@@ -146,7 +146,7 @@ Parameters (per spec):
 
 - `--model vendor/models/<file>.gguf`
 - `--n-gpu-layers auto`
-- `--ctx-size` by tier: 6/8 GB → 4096, 12 GB → 8192, 16 GB → 16384 (`--ctx` overrides)
+- `--ctx-size` by tier: 6/8 GB → 16384, 12 GB → 16384, 16 GB → 32768 (`--ctx` overrides)
 - `--host 127.0.0.1 --port 8080` (overridable via `--host`/`--port`)
 - threads left to llama.cpp's own default (no invented number)
 - prints the endpoint + a sample `curl` line on start
