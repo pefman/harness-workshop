@@ -25,8 +25,12 @@ tier_override=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --check|--download) mode="$1"; shift ;;
-    --vram) vram_override="$2"; shift 2 ;;
-    --tier) tier_override="$2"; shift 2 ;;
+    --vram)
+      [[ $# -ge 2 ]] || { echo "error: --vram requires a value" >&2; exit 2; }
+      vram_override="$2"; shift 2 ;;
+    --tier)
+      [[ $# -ge 2 ]] || { echo "error: --tier requires a value" >&2; exit 2; }
+      tier_override="$2"; shift 2 ;;
     -h|--help)
       cat <<'HELP'
 usage: llama-setup.sh [--check|--download] [--vram N] [--tier T]
@@ -42,7 +46,16 @@ HELP
 done
 
 # flag wins over the environment override
-[ -n "$vram_override" ] && export LLAMA_VRAM_MIB=$((vram_override * 1024))
+if [ -n "$vram_override" ]; then
+  [[ "$vram_override" =~ ^[0-9]+$ ]] || { echo "error: --vram requires an integer GB value, got '$vram_override'" >&2; exit 2; }
+  export LLAMA_VRAM_MIB=$((vram_override * 1024))
+fi
+if [ -n "$tier_override" ]; then
+  case "$tier_override" in
+    6|8|12|16) ;;
+    *) echo "error: unknown tier '$tier_override'" >&2; exit 2 ;;
+  esac
+fi
 
 check_tarball_size() { # tarball expected-size-bytes
   local tarball="$1" expected="$2" actual
@@ -145,21 +158,25 @@ download() {
 
   local tmpdir
   tmpdir=$(mktemp -d)
+  # unpack into tmpdir first — if either archive is bad, leave any existing install alone
+  if ! tar -xzf "$BIN_TARBALL" -C "$tmpdir"; then echo "error: unpack failed (bin)" >&2; rm -rf "$tmpdir"; return 1; fi
+  if ! tar -xzf "$CUDART_TARBALL" -C "$tmpdir"; then echo "error: unpack failed (cudart)" >&2; rm -rf "$tmpdir"; return 1; fi
+  # both unpacks succeeded and the tree looks like llama.cpp — now safe to replace the install
+  if ! find "$tmpdir" -name 'llama-server' -print -quit | grep -q .; then
+    echo "error: unpacked archives do not contain bin/llama-server" >&2
+    rm -rf "$tmpdir"
+    return 1
+  fi
   rm -rf "$VENDOR_DIR/llama.cpp"
-  mkdir -p "$VENDOR_DIR/llama.cpp/bin"
-  tar -xzf "$BIN_TARBALL" -C "$tmpdir" || { echo "error: unpack failed (bin)" >&2; rm -rf "$tmpdir"; return 1; }
-  tar -xzf "$CUDART_TARBALL" -C "$tmpdir" || { echo "error: unpack failed (cudart)" >&2; rm -rf "$tmpdir"; return 1; }
-  # flatten everything into bin/ — file names (llama-*, libggml-*, libcudart.so.12, ...) are unique.
-  # Preserve symlinks: the dynamic linker resolves libllama.so.1 -> libllama.so.1.0.0 etc.
-  find "$tmpdir" -mindepth 2 -maxdepth 2 -type f -o -type l | while IFS= read -r f; do
+  mkdir -p "$BIN_DIR"
+  # flatten everything into bin/ — pinned archives hold a single top-level dir (e.g. llama.cpp/bin/*),
+  # so every depth-2 entry is a file/symlink at that level. File names are unique; symlinks are
+  # preserved (the dynamic linker resolves libllama.so.1 -> libllama.so.1.0.0 etc.).
+  find "$tmpdir" -mindepth 2 -maxdepth 2 \( -type f -o -type l \) | while IFS= read -r f; do
     cp -a "$f" "$BIN_DIR/$(basename "$f")"
   done
   rm -rf "$tmpdir"
 
-  if [ ! -f "$SERVER" ]; then
-    echo "error: unpacked archives do not contain bin/llama-server" >&2
-    return 1
-  fi
   report
   echo "installed llama.cpp ${LLAMA_CPP_BUILD_ID}"
   return 0

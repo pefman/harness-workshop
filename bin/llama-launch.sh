@@ -37,12 +37,24 @@ ctx_override=""
 dry_run=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --model) model_override="$2"; shift 2 ;;
-    --tier) tier_override="$2"; shift 2 ;;
-    --vram) vram_override="$2"; shift 2 ;;
-    --host) host="$2"; shift 2 ;;
-    --port) port="$2"; shift 2 ;;
-    --ctx) ctx_override="$2"; shift 2 ;;
+    --model)
+      [[ $# -ge 2 ]] || { echo "error: --model requires a value" >&2; exit 2; }
+      model_override="$2"; shift 2 ;;
+    --tier)
+      [[ $# -ge 2 ]] || { echo "error: --tier requires a value" >&2; exit 2; }
+      tier_override="$2"; shift 2 ;;
+    --vram)
+      [[ $# -ge 2 ]] || { echo "error: --vram requires a value" >&2; exit 2; }
+      vram_override="$2"; shift 2 ;;
+    --host)
+      [[ $# -ge 2 ]] || { echo "error: --host requires a value" >&2; exit 2; }
+      host="$2"; shift 2 ;;
+    --port)
+      [[ $# -ge 2 ]] || { echo "error: --port requires a value" >&2; exit 2; }
+      port="$2"; shift 2 ;;
+    --ctx)
+      [[ $# -ge 2 ]] || { echo "error: --ctx requires a value" >&2; exit 2; }
+      ctx_override="$2"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
     -h|--help)
       cat <<'HELP'
@@ -63,7 +75,13 @@ HELP
 done
 
 # flag wins over the environment override
-[ -n "$vram_override" ] && export LLAMA_VRAM_MIB=$((vram_override * 1024))
+if [ -n "$vram_override" ]; then
+  [[ "$vram_override" =~ ^[0-9]+$ ]] || { echo "error: --vram requires an integer GB value, got '$vram_override'" >&2; exit 2; }
+  export LLAMA_VRAM_MIB=$((vram_override * 1024))
+fi
+if [ -n "$ctx_override" ]; then
+  [[ "$ctx_override" =~ ^[0-9]+$ ]] || { echo "error: --ctx requires an integer value, got '$ctx_override'" >&2; exit 2; }
+fi
 
 # --- resolve tier + model ---
 tier=$(active_tier "$tier_override")
@@ -74,7 +92,7 @@ if [ -n "$model_override" ]; then
   model_id="$model_override"
   [[ -n "${model_entry[$model_id]:-}" ]] || { echo "error: unknown model id '$model_id'" >&2; exit 2; }
 else
-  model_id=$(default_model_for_tier "$tier") || { echo "error: unknown tier '$tier'" >&2; exit 2; }
+  model_id=$(default_model_for_tier "$tier" 2>/dev/null) || { echo "error: unknown tier '$tier'" >&2; exit 2; }
 fi
 
 IFS='|' read -r size quant family params repo file <<< "${model_entry[$model_id]}"
@@ -103,9 +121,23 @@ missing_model=0
 if [ "$dry_run" = "1" ]; then
   if [ "$missing_model" = "1" ]; then
     echo "downloading $model_id (~${size} GB)..."
+    echo "$cmd_line"
+    exit 0
+  fi
+  if ! size_ok "$model_file" "$size"; then
+    actual=$(stat -c%s "$model_file" 2>/dev/null || echo 0)
+    echo "error: size mismatch — $file is ${actual} bytes, expected ~${size} GB. Use bin/llama-models.sh download $model_id --force to re-download." >&2
+    exit 2
   fi
   echo "$cmd_line"
   exit 0
+fi
+
+# --- model present-but-wrong-size → refuse to launch (same check as the models script) ---
+if [ "$missing_model" = "0" ] && ! size_ok "$model_file" "$size"; then
+  actual=$(stat -c%s "$model_file" 2>/dev/null || echo 0)
+  echo "error: size mismatch — $file is ${actual} bytes, expected ~${size} GB. Use bin/llama-models.sh download $model_id --force to re-download." >&2
+  exit 2
 fi
 
 if [ "$missing_model" = "1" ]; then
@@ -119,6 +151,11 @@ if [ "$missing_model" = "1" ]; then
   if [ ! -f "$model_file" ]; then
     echo "error: download did not produce $model_file" >&2
     exit 1
+  fi
+  if ! size_ok "$model_file" "$size"; then
+    actual=$(stat -c%s "$model_file" 2>/dev/null || echo 0)
+    echo "error: size mismatch after download — $file is ${actual} bytes, expected ~${size} GB" >&2
+    exit 2
   fi
 fi
 

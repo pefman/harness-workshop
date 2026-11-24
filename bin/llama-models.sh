@@ -34,8 +34,12 @@ json_mode=0
 force_download=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --tier) tier_override="$2"; shift 2 ;;
-    --vram) vram_override="$2"; shift 2 ;;
+    --tier)
+      [[ $# -ge 2 ]] || { echo "error: --tier requires a value" >&2; exit 2; }
+      tier_override="$2"; shift 2 ;;
+    --vram)
+      [[ $# -ge 2 ]] || { echo "error: --vram requires a value" >&2; exit 2; }
+      vram_override="$2"; shift 2 ;;
     --json) json_mode=1; shift ;;
     --force) force_download=1; shift ;;
     -h|--help)
@@ -57,7 +61,10 @@ HELP
 done
 
 # flag wins over the environment override
-[ -n "$vram_override" ] && export LLAMA_VRAM_MIB=$((vram_override * 1024))
+if [ -n "$vram_override" ]; then
+  [[ "$vram_override" =~ ^[0-9]+$ ]] || { echo "error: --vram requires an integer GB value, got '$vram_override'" >&2; exit 2; }
+  export LLAMA_VRAM_MIB=$((vram_override * 1024))
+fi
 
 active_tier() {
   if [ -n "$tier_override" ]; then echo "$tier_override"; return 0; fi
@@ -75,19 +82,6 @@ active_tier_note() {
   if [ -z "$tier_override" ] && ! detect_gpu_memory_mib >/dev/null 2>&1; then
     echo "note: no GPU detected, defaulting to tier 6" >&2
   fi
-}
-
-expected_bytes() { awk -v g="$1" 'BEGIN { printf "%d", g * 1000000000 }'; }
-
-size_ok() { # file manifest_gb
-  local file="$1" manifest_gb="$2"
-  [ -f "$file" ] || return 1
-  local actual expected tol diff
-  actual=$(stat -c%s "$file" 2>/dev/null || echo 0)
-  expected=$(expected_bytes "$manifest_gb")
-  tol=$((expected * SIZE_TOLERANCE_PCT / 100))
-  diff=$((actual - expected)); [ "$diff" -lt 0 ] && diff=$((-diff))
-  [ "$diff" -le "$tol" ]
 }
 
 list_models() {

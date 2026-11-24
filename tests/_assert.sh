@@ -45,16 +45,6 @@ assert_not_empty() { # string name
   fi
 }
 
-assert_success() { # description — runs the caller's command and requires exit 0
-  _TEST_COUNT=$((_TEST_COUNT+1))
-  if [ "$1" = "0" ]; then
-    echo "pass: $2"
-  else
-    echo "FAIL: $2 — expected exit 0, got $1"
-    _FAIL_COUNT=$((_FAIL_COUNT+1))
-  fi
-}
-
 report_and_exit() {
   echo "---"
   echo "$_TEST_COUNT assertions, $_FAIL_COUNT failed"

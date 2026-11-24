@@ -19,7 +19,7 @@ bin/llama.sh                      # bare run → interactive menu (Setup/Models/
 Or use the scripts directly:
 
 ```bash
-bin/llama-setup.sh --download     # detect WSL/GPU, download + unpack llama.cpp (~790 MB total)
+bin/llama-setup.sh --download     # detect WSL/GPU, download + unpack llama.cpp (~815 MB total)
 bin/llama-models.sh list          # list the models in your tier
 bin/llama-launch.sh               # download (if missing) + start llama-server
 ```
@@ -79,8 +79,25 @@ bin/llama.sh models download all
 bin/llama.sh launch --dry-run --tier 16
 ```
 
-The menu loops back after each action; Launch starts the server in the foreground
+The menu loops back after each action. Launch starts the server in the foreground
 (Ctrl-C to stop). Use `--dry-run` for the exact resolved command.
+
+The **Models** branch lists the active tier's models (size, family, ★ default),
+then prompts you to download one:
+
+```text
+models in tier 16 — pick one to download
+  1) mistral-7b-q8-0    7.17 GB  mistral 7B
+  2) llama-3.1-8b-q8-0  7.95 GB  llama 8B
+  ...
+  5) qwen2.5-14b-q6-k  11.29 GB  qwen 14B ★
+
+download [1-5] / all / back: 2
+```
+
+`1`–`5` downloads that model, `all` downloads the whole tier, `back` returns
+to the menu without downloading. Downloads run the same idempotent, size-checked
+path as `bin/llama-models.sh download`.
 
 ### `bin/llama-setup.sh`
 
@@ -111,7 +128,7 @@ bin/llama-models.sh download all --tier 6 --force
 ```
 
 Downloads go to `vendor/models/<hf_file>`, size-checked against the manifest
-(~15% tolerance — manifest sizes are 2dp GB, approximate). An existing file with a
+(~15% tolerance — manifest sizes are measured bytes / 1024^3, 2dp, approximate). An existing file with a
 bad size exits non-zero with a "size mismatch" message; `--force` re-downloads.
 `download all` covers the active tier only (5 models), not all 20.
 

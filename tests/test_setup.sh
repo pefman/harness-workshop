@@ -66,6 +66,31 @@ assert_eq "$rc" "0" "download_exits_zero_when_tarball_matches"
 assert_contains "$out" "already installed" "download_reports_already_installed"
 rm -rf "$tmp"
 
+# bad tarball + failing curl stub → old install preserved (unpack-before-swap)
+tmp=$(mktemp -d)
+mkdir -p "$tmp/llama.cpp/bin" "$tmp/bin"
+: > "$tmp/llama.cpp/bin/llama-server"
+touch "$tmp/llama.cpp/bin/marker"
+printf 'small' > "$tmp/llama.cpp-bin.tar.gz"
+printf 'small' > "$tmp/llama.cpp-cudart.tar.gz"
+cat > "$tmp/bin/curl" <<'STUB'
+#!/bin/bash
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -o) dest="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+printf 'garbage' > "$dest"
+STUB
+chmod +x "$tmp/bin/curl"
+rc=0
+out=$(PATH="$tmp/bin:$PATH" LLAMA_VENDOR="$tmp" ./bin/llama-setup.sh --download 2>&1) || rc=$?
+assert_eq "$rc" "2" "download_failure_exits_2"
+assert_file_exists "$tmp/llama.cpp/bin/llama-server" "download_failure_preserves_old_install"
+assert_file_exists "$tmp/llama.cpp/bin/marker" "download_failure_preserves_old_tree"
+rm -rf "$tmp"
+
 # full download (network-gated): real tarball into tmp vendor
 if [ "${LLAMA_TEST_NETWORK:-0}" = "1" ]; then
   tmp=$(mktemp -d)

@@ -89,11 +89,6 @@ active_tier() {
   return 0
 }
 
-# config_lookup(tier) → absolute path to config/models.sh
-config_lookup() {
-  echo "$PROJECT_ROOT/config/models.sh"
-}
-
 # ensure_vendor_llama(bin_dir) → prints resolved llama-server path, else
 # prints a clear error to stderr and returns 1.
 ensure_vendor_llama() {
@@ -106,13 +101,23 @@ ensure_vendor_llama() {
   return 1
 }
 
-# bin_paths() → echoes the bin/ scripts (absolute paths)
-bin_paths() {
-  printf '%s\n' \
-    "$PROJECT_ROOT/bin/llama.sh" \
-    "$PROJECT_ROOT/bin/llama-setup.sh" \
-    "$PROJECT_ROOT/bin/llama-models.sh" \
-    "$PROJECT_ROOT/bin/llama-launch.sh"
+# expected_bytes(gb) → expected file size in bytes. Manifests (config/models.sh)
+# carry GiB-derived sizes (measured bytes / 1024^3, 2dp), so convert with 1024^3.
+expected_bytes() {
+  awk -v g="$1" 'BEGIN { printf "%d", g * 1073741824 }'
+}
+
+# size_ok(file, manifest_gb, tolerance_pct) → exits 0 when the file exists and is
+# within tolerance_pct% of the expected size (default 15%). Returns 1 otherwise.
+size_ok() {
+  local file="$1" manifest_gb="$2" tolerance="${3:-15}"
+  [[ -f "$file" ]] || return 1
+  local actual expected tol diff
+  actual=$(stat -c%s "$file" 2>/dev/null || echo 0)
+  expected=$(expected_bytes "$manifest_gb")
+  tol=$((expected * tolerance / 100))
+  diff=$((actual - expected)); [ "$diff" -lt 0 ] && diff=$((-diff))
+  [[ "$diff" -le "$tol" ]]
 }
 
 # color(text, code) → ANSI-wrapped text, plain when not a tty or LLAMA_NO_COLOR

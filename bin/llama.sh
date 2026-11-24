@@ -74,10 +74,41 @@ menu_loop() {
       exit 0
     fi
     case "$choice" in
-      1) "$BIN_DIR/llama-setup.sh" --check; read -p "Press Enter to continue..." ;;
-      2) "$BIN_DIR/llama-models.sh" list; read -p "Press Enter to continue..." ;;
-      3) "$BIN_DIR/llama-launch.sh"; read -p "Press Enter to continue..." ;;
-      4) help_text; read -p "Press Enter to continue..." ;;
+      1) "$BIN_DIR/llama-setup.sh" --download || true; read -p "Press Enter to continue..." ;;
+      2)
+        local tier ids id size family params default i pick
+        tier=$(active_tier "")
+        ids="${tier_models[$tier]:-}"
+        if [ -z "$ids" ]; then
+          echo "error: unknown tier '$tier'" >&2
+        else
+          default=$(default_model_for_tier "$tier" 2>/dev/null || true)
+          echo
+          echo "$(color "models in tier $tier — pick one to download" "1;36")"
+          i=1
+          while IFS= read -r id; do
+            [[ -n "$id" ]] || continue
+            IFS='|' read -r size _ family params _ _ <<< "${model_entry[$id]}"
+            mark=""
+            [ "$id" = "$default" ] && mark=" ★"
+            printf "  %d) %-22s %6s GB  %s %s%s\n" "$i" "$id" "$size" "$family" "$params" "$mark"
+            i=$((i+1))
+          done <<< "$ids"
+          echo
+          read -p "  download [1-5] / all / back: " pick
+          pick=$(echo "$pick" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+          case "$pick" in
+            ""|back) ;;
+            all) "$BIN_DIR/llama-models.sh" download all || true ;;
+            1|2|3|4|5)
+              id=$(echo "$ids" | sed -n "${pick}p")
+              "$BIN_DIR/llama-models.sh" download "$id" || true ;;
+            *) echo "pick 1-5, 'all', or 'back'" ;;
+          esac
+        fi
+        read -p "Press Enter to continue..." ;;
+      3) "$BIN_DIR/llama-launch.sh" || true; read -p "Press Enter to continue..." ;;
+      4) help_text || true; read -p "Press Enter to continue..." ;;
       5) exit 0 ;;
       "") echo "please pick 1-5" ;;
       *) echo "unknown choice '$choice' — pick 1-5" ;;
