@@ -9,7 +9,7 @@
 #
 # Flags:
 #   --host H     listen host (default: 127.0.0.1)
-#   --port P     listen port (default: 8081)
+#   --port P     listen port (default: 8080)
 #   --run        launch claude instead of just printing
 #   --           forward extra args to claude (e.g. -- -p "hello")
 #
@@ -24,7 +24,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$PROJECT_ROOT/config/models.sh"
 
 host="127.0.0.1"
-port="8081"
+port="8080"
 run_mode=0
 harness_args=()
 while [ $# -gt 0 ]; do

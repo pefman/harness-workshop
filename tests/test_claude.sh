@@ -33,9 +33,9 @@ JSON
 out=$(LLAMA_CLAUDE_FIXTURE="$tmp/fixture.json" "$SCRIPT" 2>&1)
 rc=$?
 assert_eq "$rc" "0" "fixture_match_exits_0"
-assert_contains "$out" "ANTHROPIC_BASE_URL=http://127.0.0.1:8081" "fixture_prints_base_url"
+assert_contains "$out" "ANTHROPIC_BASE_URL=http://127.0.0.1:8080" "fixture_prints_base_url"
 line=$(grep -E '^ANTHROPIC_BASE_URL=' <<<"$out")
-assert_eq "$line" "ANTHROPIC_BASE_URL=http://127.0.0.1:8081" "base_url_has_no_v1"
+assert_eq "$line" "ANTHROPIC_BASE_URL=http://127.0.0.1:8080" "base_url_has_no_v1"
 assert_contains "$out" "ANTHROPIC_MODEL=Qwen2.5-0.5B-Instruct-Q4_K_M.gguf" "fixture_prints_model_id"
 assert_contains "$out" "matches:  qwen2.5-0.5b-q4-k-m" "fixture_matches_config_entry"
 assert_contains "$out" "16384" "fixture_prints_ctx"
@@ -90,15 +90,15 @@ assert_eq "$rc" "3" "run_propagates_claude_exit_code"
 rm -rf "$tmp"
 
 # --- live case: skip, not fail, when the server is not up ---
-if curl -sf -m 2 http://127.0.0.1:8081/v1/models >/dev/null 2>&1; then
+if curl -sf -m 2 http://127.0.0.1:8080/v1/models >/dev/null 2>&1; then
   out=$("$SCRIPT" 2>&1)
   rc=$?
   assert_eq "$rc" "0" "live_prints_config"
-  assert_contains "$out" "ANTHROPIC_BASE_URL=http://127.0.0.1:8081" "live_prints_base_url"
+  assert_contains "$out" "ANTHROPIC_BASE_URL=http://127.0.0.1:8080" "live_prints_base_url"
   line=$(grep -E '^ANTHROPIC_BASE_URL=' <<<"$out")
-  assert_eq "$line" "ANTHROPIC_BASE_URL=http://127.0.0.1:8081" "live_base_url_has_no_v1"
+  assert_eq "$line" "ANTHROPIC_BASE_URL=http://127.0.0.1:8080" "live_base_url_has_no_v1"
 else
-  echo "SKIP: live case (server not up on 127.0.0.1:8081)"
+  echo "SKIP: live case (server not up on 127.0.0.1:8080)"
 fi
 
 set -e
