@@ -93,8 +93,8 @@ done
 # --- render the block ---
 ctx_note=""
 [ -n "$n_ctx" ] && ctx_note=" (ctx $n_ctx)"
-echo "endpoint: $endpoint"
-echo "claude appends /v1/messages itself — the base URL must not carry /v1"
+echo "endpoint: http://$host:$port/v1"
+echo "claude base url: $endpoint (no /v1 — claude appends /v1/messages itself)"
 echo "model:    $model_id$ctx_note"
 if [ -n "$matched" ]; then
   echo "matches:  $matched"
