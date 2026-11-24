@@ -21,7 +21,7 @@ MODELS_DIR="$VENDOR_DIR/models"
 SIZE_TOLERANCE_PCT=15   # manifest GB is 2dp/approximate — not a byte-exact pin
 
 # --- parse args: <cmd> [positional id] [--tier T] [--json] [--force] ---
-if [ $# -gt 0 ]; then
+if [ $# -gt 0 ] && [[ "$1" != --* ]]; then
   cmd="$1"
   shift
 else
