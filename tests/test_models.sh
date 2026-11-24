@@ -50,10 +50,13 @@ assert_eq "$(default_model_for_tier 8)"  "llama-3.1-8b-q4-k-m"  "default_tier_8"
 assert_eq "$(default_model_for_tier 12)" "llama-3.1-8b-q8-0"    "default_tier_12"
 assert_eq "$(default_model_for_tier 16)" "qwen2.5-14b-q6-k"      "default_tier_16"
 
-# binary manifest is complete
+# binary manifest is complete (two assets: binaries + CUDA runtime)
 [[ -n "${LLAMA_CPP_BUILD_ID:-}"  ]] && assert_eq "$LLAMA_CPP_BUILD_ID" "b12675" "binary_build_id" \
   || { echo "FAIL: binary_build_id — LLAMA_CPP_BUILD_ID unset"; _FAIL_COUNT=$((_FAIL_COUNT+1)); _TEST_COUNT=$((_TEST_COUNT+1)); }
-assert_contains "${LLAMA_CPP_URL:-}" "b12675" "binary_url_contains_build_id"
-assert_eq "${LLAMA_CPP_SIZE_BYTES:-0}" "594372523" "binary_size_bytes"
+assert_contains "${LLAMA_CPP_BIN_URL:-}" "b12675" "binary_bin_url_contains_build_id"
+assert_contains "${LLAMA_CPP_BIN_URL:-}" "ubuntu-cuda-12.8-x64" "binary_bin_url_is_cuda_12_8"
+assert_eq "${LLAMA_CPP_BIN_SIZE_BYTES:-0}" "220261389" "binary_bin_size_bytes"
+assert_contains "${LLAMA_CPP_CUDART_URL:-}" "b12675" "binary_cudart_url_contains_build_id"
+assert_eq "${LLAMA_CPP_CUDART_SIZE_BYTES:-0}" "594372523" "binary_cudart_size_bytes"
 
 report_and_exit

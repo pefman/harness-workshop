@@ -34,6 +34,11 @@ detect_gpu_memory_mib() {
     echo "$LLAMA_VRAM_MIB"
     return 0
   fi
+  # test hook: skip the real query, report "missing" as if nvidia-smi were absent
+  if [[ -n "${LLAMA_FORCE_NO_GPU:-}" ]]; then
+    echo "error: nvidia-smi not found" >&2
+    return 1
+  fi
   require_cmd nvidia-smi || return 1
   local raw
   if ! raw=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader 2>/dev/null | head -1); then
