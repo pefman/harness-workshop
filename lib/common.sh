@@ -72,6 +72,23 @@ vram_gb_from_mib() {
   awk -v m="$mib" 'BEGIN { print int(m/1024 + 0.5) }'
 }
 
+# active_tier(override) → tier string (6|8|12|16). Uses the override when given,
+# otherwise the auto-detected tier; falls back to 6 when no GPU is detectable.
+active_tier() {
+  local override="${1:-}"
+  if [[ -n "$override" ]]; then
+    echo "$override"
+    return 0
+  fi
+  local mib
+  if mib=$(detect_gpu_memory_mib 2>/dev/null); then
+    snap_tier "$(vram_gb_from_mib "$mib")"
+    return 0
+  fi
+  echo "6"
+  return 0
+}
+
 # config_lookup(tier) → absolute path to config/models.sh
 config_lookup() {
   echo "$PROJECT_ROOT/config/models.sh"
